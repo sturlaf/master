@@ -1,20 +1,11 @@
+import datetime
 from itertools import product
-import sys
-from PIL import Image
 from os import listdir
 
-import numpy as np
-import torch
-from torchvision import transforms
-
-from lucent.modelzoo import *
-from lucent.misc.io import show
-import lucent.optvis.objectives as objectives
-import lucent.optvis.param as param
 import lucent.optvis.render as render
-import lucent.optvis.transform as transform
-from lucent.misc.channel_reducer import ChannelReducer
-from lucent.misc.io import show
+import torch
+from PIL import Image
+from torchvision import transforms
 
 
 def transform_image(input_image):
@@ -49,21 +40,35 @@ def get_all_layers(model, layers, X):
     return [hook.features for hook in hooks]
 
 
-def get_activations(model, layers, num, path="data/ILSVRC2015/Data/DET/test/"):
+def get_activations(model, layers, num=100000, path="data/ILSVRC2015/Data/DET/test/"):
     images = []
     for file in listdir(path)[:num]:
         images.append(Image.open(path + file))
     images = [image for image in images if len(image.getbands()) == 3]
-    images = torch.cat(list(map(transform_image, images)))
-    activations = get_all_layers(model, layers, images)
-    max_activations = [act.max(dim=3)[0].max(dim=2)[0] for act in activations]
+    max_activations = []
+    mean_activations = []
+    while images:
+        print(f"{len(images)}", end=" - ")
+        batch = images[:500]
+        images = images[500:]
+        batch = torch.cat(list(map(transform_image, batch)))
+        activations = get_all_layers(model, layers, batch)
+        max_activations = [
+            torch.cat((max_act, act.max(dim=3)[0].max(dim=2)[0]))
+            for max_act, act in zip(max_activations, activations)
+        ]
+        mean_activations = [
+            torch.cat((mean_act, act.max(dim=3)[0].max(dim=2)[0]))
+            for mean_act, act in zip(mean_activations, activations)
+        ]
     torch.save(max_activations, "activations/max_activations.pt")
-    mean_activations = [act.mean(dim=[2, 3]) for act in activations]
     torch.save(mean_activations, "activations/mean_activations.pt")
     return activations
 
 
 def main():
+    t = datetime.datetime.now()
+    print(f"Started at {t}")
     layers = [
         "inception3a",
         "inception3b",
@@ -78,7 +83,8 @@ def main():
 
     model = torch.hub.load("pytorch/vision:v0.10.0", "googlenet", pretrained=True)
     model.eval()
-    get_activations(model, layers, 200)
+    get_activations(model, layers)
+    print(f"Finished in {datetime.datetime.now() - t}")
 
 
 if __name__ == "__main__":
