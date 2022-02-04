@@ -41,29 +41,30 @@ def get_all_layers(model, layers, X):
 
 
 def get_activations(model, layers, num=100000, path="data/ILSVRC2015/Data/DET/test/"):
-    images = []
-    for file in listdir(path)[:num]:
-        images.append(Image.open(path + file))
-    images = [image for image in images if len(image.getbands()) == 3]
     max_activations = []
     mean_activations = []
+    images = []
+    for file in listdir(path)[:num]:
+        image = Image.open(path + file)
+        if len(image.getbands()) == 3:
+            images.append(transform_image(image))
+        image.close()
     while images:
-        print(f"{len(images)}", end=" - ")
-        batch = images[:500]
-        images = images[500:]
-        batch = torch.cat(list(map(transform_image, batch)))
+        imgs_in_batch = 300
+        batch = torch.cat(images[:imgs_in_batch])
+        images = images[imgs_in_batch:]
         activations = get_all_layers(model, layers, batch)
-        max_activations = [
-            torch.cat((max_act, act.max(dim=3)[0].max(dim=2)[0]))
-            for max_act, act in zip(max_activations, activations)
-        ]
-        mean_activations = [
-            torch.cat((mean_act, act.max(dim=3)[0].max(dim=2)[0]))
-            for mean_act, act in zip(mean_activations, activations)
-        ]
+        max_activations.append([act.max(dim=3)[0].max(dim=2)[0] for act in activations])
+        mean_activations.append([act.mean(dim=[2, 3]) for act in activations])
+
+    if len(max_activations) > 1:
+        max_activations = list(zip(*max_activations))
+        mean_activations = list(zip(*mean_activations))
+    max_activations = [torch.cat(lay) for lay in max_activations]
+    mean_activations = [torch.cat(lay) for lay in mean_activations]
     torch.save(max_activations, "activations/max_activations.pt")
     torch.save(mean_activations, "activations/mean_activations.pt")
-    return activations
+    return max_activations, mean_activations
 
 
 def main():

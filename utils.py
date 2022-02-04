@@ -1,4 +1,4 @@
-from datetime import datetime 
+from datetime import datetime
 import functools
 import glob
 import h5py
@@ -11,7 +11,13 @@ from ripser import Rips, ripser
 from scipy import stats, signal, optimize
 from scipy.optimize import minimize
 import scipy.io as sio
-from scipy.ndimage import gaussian_filter,  gaussian_filter1d, rotate, binary_dilation, binary_closing
+from scipy.ndimage import (
+    gaussian_filter,
+    gaussian_filter1d,
+    rotate,
+    binary_dilation,
+    binary_closing,
+)
 from scipy.stats import binned_statistic_2d, pearsonr, multivariate_normal
 from scipy.special import factorial
 from scipy.spatial.distance import cdist, pdist, squareform
@@ -26,12 +32,12 @@ import time
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
-from sklearn.cluster import KMeans,DBSCAN
-from sklearn.base import BaseEstimator, ClusterMixin,TransformerMixin
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 from sklearn.metrics import pairwise_distances
 import umap
 import matplotlib.pyplot as plt
-import os 
+import os
 import numpy as np
 import plotly.graph_objects as go
 
@@ -41,11 +47,12 @@ def get_symmetric_weights(rows, cols, vals):
     weights.eliminate_zeros()
     transpose = weights.transpose()
     prod_matrix = weights.multiply(transpose)
-    weights = (weights + transpose - prod_matrix)
+    weights = weights + transpose - prod_matrix
     weights.eliminate_zeros()
     return weights.toarray()
 
-@numba.njit(parallel=True, fastmath=True) 
+
+@numba.njit(parallel=True, fastmath=True)
 def compute_membership_strengths(knn_indices, knn_dists, sigmas, rhos):
     n_samples = knn_indices.shape[0]
     n_neighbors = knn_indices.shape[1]
@@ -62,7 +69,7 @@ def compute_membership_strengths(knn_indices, knn_dists, sigmas, rhos):
                 val = 1.0
             else:
                 val = np.exp(-((knn_dists[i, j] - rhos[i]) / (sigmas[i])))
-                #val = ((knn_dists[i, j] - rhos[i]) / (sigmas[i]))
+                # val = ((knn_dists[i, j] - rhos[i]) / (sigmas[i]))
 
             rows[i * n_neighbors + j] = i
             cols[i * n_neighbors + j] = knn_indices[i, j]
@@ -70,15 +77,16 @@ def compute_membership_strengths(knn_indices, knn_dists, sigmas, rhos):
 
     return rows, cols, vals
 
+
 ## Note, the following funtion is imported from the UMAP library
 @numba.njit(
     fastmath=True
 )  # benchmarking `parallel=True` shows it to *decrease* performance
 def smooth_knn_dist(distances, k, n_iter=64, local_connectivity=0.0, bandwidth=1.0):
     target = np.log2(k) * bandwidth
-#    target = np.log(k) * bandwidth
-#    target = k
-    
+    #    target = np.log(k) * bandwidth
+    #    target = k
+
     rho = np.zeros(distances.shape[0])
     result = np.zeros(distances.shape[0])
 
@@ -113,11 +121,11 @@ def smooth_knn_dist(distances, k, n_iter=64, local_connectivity=0.0, bandwidth=1
                 d = distances[i, j] - rho[i]
                 if d > 0:
                     psum += np.exp(-(d / mid))
-#                    psum += d / mid
- 
+                #                    psum += d / mid
+
                 else:
                     psum += 1.0
-#                    psum += 0
+            #                    psum += 0
 
             if np.fabs(psum - target) < 1e-5:
                 break
@@ -143,6 +151,7 @@ def smooth_knn_dist(distances, k, n_iter=64, local_connectivity=0.0, bandwidth=1
 
     return result, rho
 
+
 def plot_diagrams(
     diagrams,
     plot_only=None,
@@ -150,21 +159,19 @@ def plot_diagrams(
     xy_range=None,
     labels=None,
     colormap="default",
-    colormap1 = "default",
+    colormap1="default",
     size=20,
     ax_color=np.array([0.0, 0.0, 0.0]),
     diagonal=True,
     lifetime=False,
-    rel_life= False,
+    rel_life=False,
     legend=True,
     show=False,
     ax=None,
-    torus_colors = [],
-    lw = 2.5,
-    cs = ['#1f77b4','#ff7f0e', '#2ca02c', '#d62728']
-
+    torus_colors=[],
+    lw=2.5,
+    cs=["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"],
 ):
-
 
     ax = ax or plt.gca()
     plt.style.use(colormap)
@@ -189,7 +196,7 @@ def plot_diagrams(
         # Must have diagrams as a list for processing downstream
         diagrams = [diagrams]
 
-    if len(plot_only)>0:
+    if len(plot_only) > 0:
         diagrams = [diagrams[i] for i in plot_only]
         labels = [labels[i] for i in plot_only]
 
@@ -199,7 +206,7 @@ def plot_diagrams(
     # Construct copy with proper type of each diagram
     # so we can freely edit them.
     diagrams = [dgm.astype(np.float32, copy=True) for dgm in diagrams]
-    aspect = 'equal'
+    aspect = "equal"
     # find min and max of all visible diagrams
     concat_dgms = np.concatenate(diagrams).flatten()
     has_inf = np.any(np.isinf(concat_dgms))
@@ -223,8 +230,6 @@ def plot_diagrams(
 
     yr = y_up - y_down
 
-
-
     if lifetime:
 
         # Don't plot landscape and diagonal at the same time.
@@ -242,7 +247,7 @@ def plot_diagrams(
             dgm[:, 1] -= dgm[:, 0]
 
         # plot horizon line
-#        ax.plot([x_down, x_up], [0, 0], c=ax_color)
+    #        ax.plot([x_down, x_up], [0, 0], c=ax_color)
 
     # Plot diagonal
     if diagonal:
@@ -261,38 +266,56 @@ def plot_diagrams(
     for dgm, label in zip(diagrams, labels):
         c = cs[plot_only[i]]
         # plot persistence pairs
-        ax.scatter(dgm[:, 0], dgm[:, 1], size, label=label, edgecolor="none", c = c)
+        ax.scatter(dgm[:, 0], dgm[:, 1], size, label=label, edgecolor="none", c=c)
         i += 1
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        
-    if len(torus_colors)>0:
-        births1 = diagrams[1][:, 0] #the time of birth for the 1-dim classes
-        deaths1 = diagrams[1][:, 1] #the time of death for the 1-dim classes
+
+    if len(torus_colors) > 0:
+        births1 = diagrams[1][:, 0]  # the time of birth for the 1-dim classes
+        deaths1 = diagrams[1][:, 1]  # the time of death for the 1-dim classes
         deaths1[np.isinf(deaths1)] = 0
-        #lives1 = deaths1-births1
-        #inds1 = np.argsort(lives1)
+        # lives1 = deaths1-births1
+        # inds1 = np.argsort(lives1)
         inds1 = np.argsort(deaths1)
-        ax.scatter(diagrams[1][inds1[-1], 0], diagrams[1][inds1[-1], 1], 
-                   10*size, linewidth =lw, edgecolor=torus_colors[0], facecolor = "none")
-        ax.scatter(diagrams[1][inds1[-2], 0], diagrams[1][inds1[-2], 1], 
-                   10*size, linewidth =lw, edgecolor=torus_colors[1], facecolor = "none")
-        
-        
-        births2 = diagrams[2][:, ] #the time of birth for the 1-dim classes
-        deaths2 = diagrams[2][:, 1] #the time of death for the 1-dim classes
+        ax.scatter(
+            diagrams[1][inds1[-1], 0],
+            diagrams[1][inds1[-1], 1],
+            10 * size,
+            linewidth=lw,
+            edgecolor=torus_colors[0],
+            facecolor="none",
+        )
+        ax.scatter(
+            diagrams[1][inds1[-2], 0],
+            diagrams[1][inds1[-2], 1],
+            10 * size,
+            linewidth=lw,
+            edgecolor=torus_colors[1],
+            facecolor="none",
+        )
+
+        births2 = diagrams[2][
+            :,
+        ]  # the time of birth for the 1-dim classes
+        deaths2 = diagrams[2][:, 1]  # the time of death for the 1-dim classes
         deaths2[np.isinf(deaths2)] = 0
-        #lives2 = deaths2-births2
-        #inds2 = np.argsort(lives2)
+        # lives2 = deaths2-births2
+        # inds2 = np.argsort(lives2)
         inds2 = np.argsort(deaths2)
-#        print(lives2, births2[inds2[-1]],deaths2[inds2[-1]], diagrams[2][inds2[-1], 0], diagrams[2][inds2[-1], 1])
-        ax.scatter(diagrams[2][inds2[-1], 0], diagrams[2][inds2[-1], 1], 
-                   10*size, linewidth =lw, edgecolor=torus_colors[2], facecolor = "none")
-        
-        
+        #        print(lives2, births2[inds2[-1]],deaths2[inds2[-1]], diagrams[2][inds2[-1], 0], diagrams[2][inds2[-1], 1])
+        ax.scatter(
+            diagrams[2][inds2[-1], 0],
+            diagrams[2][inds2[-1], 1],
+            10 * size,
+            linewidth=lw,
+            edgecolor=torus_colors[2],
+            facecolor="none",
+        )
+
     ax.set_xlim([x_down, x_up])
     ax.set_ylim([y_down, y_up])
-    ax.set_aspect(aspect, 'box')
+    ax.set_aspect(aspect, "box")
 
     if title is not None:
         ax.set_title(title)
@@ -303,6 +326,7 @@ def plot_diagrams(
     if show is True:
         plt.show()
     return
+
 
 def get_coords(cocycle, threshold, num_sampled, dists, coeff):
     zint = np.where(coeff - cocycle[:, 2] < cocycle[:, 2])
@@ -326,9 +350,9 @@ def get_coords(cocycle, threshold, num_sampled, dists, coeff):
 
     A[v1[:, 0], v1[:, 1]] = -1
     A[v2[:, 0], v2[:, 1]] = 1
-  
+
     L = np.ones((num_edges,))
     Aw = A * np.sqrt(L[:, np.newaxis])
     Bw = values * np.sqrt(L)
-    f = lsmr(Aw, Bw)[0]%1
+    f = lsmr(Aw, Bw)[0] % 1
     return f, verts
