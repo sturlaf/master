@@ -1,12 +1,10 @@
-import datetime
-from itertools import product
-from os import listdir
-
+import os
 import lucent.optvis.render as render
 import torch
 from PIL import Image
 from torchvision import transforms
 import random
+from tqdm import tqdm
 
 
 def transform_image(input_image):
@@ -41,37 +39,51 @@ def get_all_layers(model, layers, X):
     return [hook.features for hook in hooks]
 
 
-def get_activations(model, layers, num=100000, path="data/ILSVRC2015/Data/DET/test/"):
-    max_activations = []
-    mean_activations = []
-    images = []
-    for file in listdir(path)[:num]:
-        image = Image.open(path + file)
-        if len(image.getbands()) == 3:
-            images.append(transform_image(image))
-        image.close()
-    while images:
-        imgs_in_batch = 300
-        batch = torch.cat(images[:imgs_in_batch])
-        images = images[imgs_in_batch:]
-        activations = get_all_layers(model, layers, batch)
-        max_activations.append([act.max(dim=3)[0].max(dim=2)[0] for act in activations])
-        mean_activations.append([act.mean(dim=[2, 3]) for act in activations])
+def select_patch(image_activation, patch_size):
+    x_cor, y_cor = random.randint(0, patch_size), random.randint(0, patch_size)
+    return image_activation[:, :, x_cor, y_cor]
 
-    if len(max_activations) > 1:
-        max_activations = list(zip(*max_activations))
-        mean_activations = list(zip(*mean_activations))
-    max_activations = [torch.cat(lay) for lay in max_activations]
-    mean_activations = [torch.cat(lay) for lay in mean_activations]
-    torch.save(max_activations, "activations/max_activations.pt")
-    torch.save(mean_activations, "activations/mean_activations.pt")
-    return max_activations, mean_activations
+
+def get_activations(
+    model,
+    layers,
+    batch_size=150,
+    number_of_images=100000,
+    path="data/ILSVRC2015/Data/DET/test/",
+):
+    for layer in layers:
+        if not os.path.exists(f"activations/{layer}"):
+            os.makedirs(f"activations/{layer}")
+    image_paths = os.listdir(path)[:number_of_images]
+    total_num_pictures = len(image_paths)
+    pbar = tqdm(total=total_num_pictures)
+    while image_paths:
+        batch_paths, image_paths = image_paths[:batch_size], image_paths[batch_size:]
+        images = []
+        for file in batch_paths:
+            image = Image.open(path + file)
+            # Only want pictures with 3 image chanels, i.e colored pictures
+            if len(image.getbands()) == 3:
+                images.append(transform_image(image))
+            image.close()
+        images = torch.cat(images)
+        activations = get_all_layers(model, layers, images)
+        for layer, layer_activations in zip(layers, activations):
+            patch_size = layer_activations.shape[3] - 1
+            layer_activations = map(
+                lambda img_activation: select_patch(img_activation, patch_size),
+                layer_activations.split(1),
+            )
+            layer_activations = torch.cat(list(layer_activations))
+            torch.save(
+                layer_activations,
+                f"activations/{layer}/activations_{total_num_pictures - len(image_paths)}.pt",
+            )
+        pbar.update(batch_size)
 
 
 def main():
     random.seed(17)
-    t = datetime.datetime.now()
-    print(f"Started at {t}")
     layers = [
         "inception3a",
         "inception3b",
@@ -84,10 +96,27 @@ def main():
         "inception5b",
     ]
 
+    extact_activations(layers)
+    concat_batches(layers)
+
+
+def extact_activations(layers):
     model = torch.hub.load("pytorch/vision:v0.10.0", "googlenet", pretrained=True)
     model.eval()
     get_activations(model, layers)
-    print(f"Finished in {datetime.datetime.now() - t}")
+
+
+def concat_batches(
+    layers, folder="activations", save_location="activations/ILSVRC2015"
+):
+    if not os.path.exists(save_location):
+        os.makedirs(save_location)
+    for layer in layers:
+        batch_paths = os.listdir(f"{folder}/{layer}")
+        activations = torch.cat(
+            [torch.load(f"{folder}/{layer}/{file}") for file in batch_paths]
+        )
+        torch.save(activations, f"{save_location}/{layer}.pt")
 
 
 if __name__ == "__main__":
