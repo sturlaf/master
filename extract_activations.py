@@ -6,6 +6,7 @@ import lucent.optvis.render as render
 import torch
 from PIL import Image
 from torchvision import transforms
+import random
 
 
 def transform_image(input_image):
@@ -68,6 +69,7 @@ def get_activations(model, layers, num=100000, path="data/ILSVRC2015/Data/DET/te
 
 
 def main():
+    random.seed(17)
     t = datetime.datetime.now()
     print(f"Started at {t}")
     layers = [
