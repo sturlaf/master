@@ -1,45 +1,8 @@
-from datetime import datetime
-import functools
-import glob
-import h5py
-import matplotlib
-from matplotlib import animation, cm, transforms, pyplot as plt, gridspec as grd
-from matplotlib.collections import PathCollection
+from matplotlib import pyplot as plt
 import numba
-import numpy as np
-from ripser import Rips, ripser
-from scipy import stats, signal, optimize
-from scipy.optimize import minimize
-import scipy.io as sio
-from scipy.ndimage import (
-    gaussian_filter,
-    gaussian_filter1d,
-    rotate,
-    binary_dilation,
-    binary_closing,
-)
-from scipy.stats import binned_statistic_2d, pearsonr, multivariate_normal
-from scipy.special import factorial
-from scipy.spatial.distance import cdist, pdist, squareform
-import scipy.stats
 from scipy.sparse import coo_matrix
-from scipy.linalg import eigh
 from scipy.sparse.linalg import lsmr
-from sklearn import preprocessing
-from sklearn.metrics import explained_variance_score
-import sys
-import time
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.neighbors import NearestNeighbors
-from sklearn.cluster import KMeans, DBSCAN
-from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
-from sklearn.metrics import pairwise_distances
-import umap
-import matplotlib.pyplot as plt
-import os
 import numpy as np
-import plotly.graph_objects as go
 
 
 def get_symmetric_weights(rows, cols, vals):
