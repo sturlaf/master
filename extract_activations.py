@@ -1,9 +1,10 @@
 import os
+import random
+
 import lucent.optvis.render as render
 import torch
 from PIL import Image
 from torchvision import transforms
-import random
 from tqdm import tqdm
 
 

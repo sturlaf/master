@@ -1,8 +1,8 @@
-from matplotlib import pyplot as plt
 import numba
+import numpy as np
+from matplotlib import pyplot as plt
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import lsmr
-import numpy as np
 
 
 def get_symmetric_weights(rows, cols, vals):
