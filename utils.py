@@ -1,118 +1,5 @@
-import numba
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.sparse import coo_matrix
-from scipy.sparse.linalg import lsmr
-
-
-def get_symmetric_weights(rows, cols, vals):
-    weights = coo_matrix((vals, (rows, cols)), shape=(X.shape[0], X.shape[0]))
-    weights.eliminate_zeros()
-    transpose = weights.transpose()
-    prod_matrix = weights.multiply(transpose)
-    weights = weights + transpose - prod_matrix
-    weights.eliminate_zeros()
-    return weights.toarray()
-
-
-@numba.njit(parallel=True, fastmath=True)
-def compute_membership_strengths(knn_indices, knn_dists, sigmas, rhos):
-    n_samples = knn_indices.shape[0]
-    n_neighbors = knn_indices.shape[1]
-    rows = np.zeros((n_samples * n_neighbors), dtype=np.int64)
-    cols = np.zeros((n_samples * n_neighbors), dtype=np.int64)
-    vals = np.zeros((n_samples * n_neighbors), dtype=np.float64)
-    for i in range(n_samples):
-        for j in range(n_neighbors):
-            if knn_indices[i, j] == -1:
-                continue  # We didn't get the full knn for i
-            if knn_indices[i, j] == i:
-                val = 0.0
-            elif knn_dists[i, j] - rhos[i] <= 0.0:
-                val = 1.0
-            else:
-                val = np.exp(-((knn_dists[i, j] - rhos[i]) / (sigmas[i])))
-                # val = ((knn_dists[i, j] - rhos[i]) / (sigmas[i]))
-
-            rows[i * n_neighbors + j] = i
-            cols[i * n_neighbors + j] = knn_indices[i, j]
-            vals[i * n_neighbors + j] = val
-
-    return rows, cols, vals
-
-
-## Note, the following funtion is imported from the UMAP library
-@numba.njit(
-    fastmath=True
-)  # benchmarking `parallel=True` shows it to *decrease* performance
-def smooth_knn_dist(distances, k, n_iter=64, local_connectivity=0.0, bandwidth=1.0):
-    target = np.log2(k) * bandwidth
-    #    target = np.log(k) * bandwidth
-    #    target = k
-
-    rho = np.zeros(distances.shape[0])
-    result = np.zeros(distances.shape[0])
-
-    mean_distances = np.mean(distances)
-
-    for i in range(distances.shape[0]):
-        lo = 0.0
-        hi = np.inf
-        mid = 1.0
-
-        # TODO: This is very inefficient, but will do for now. FIXME
-        ith_distances = distances[i]
-        non_zero_dists = ith_distances[ith_distances > 0.0]
-        if non_zero_dists.shape[0] >= local_connectivity:
-            index = int(np.floor(local_connectivity))
-            interpolation = local_connectivity - index
-            if index > 0:
-                rho[i] = non_zero_dists[index - 1]
-                if interpolation > 1e-5:
-                    rho[i] += interpolation * (
-                        non_zero_dists[index] - non_zero_dists[index - 1]
-                    )
-            else:
-                rho[i] = interpolation * non_zero_dists[0]
-        elif non_zero_dists.shape[0] > 0:
-            rho[i] = np.max(non_zero_dists)
-
-        for n in range(n_iter):
-
-            psum = 0.0
-            for j in range(1, distances.shape[1]):
-                d = distances[i, j] - rho[i]
-                if d > 0:
-                    psum += np.exp(-(d / mid))
-                #                    psum += d / mid
-
-                else:
-                    psum += 1.0
-            #                    psum += 0
-
-            if np.fabs(psum - target) < 1e-5:
-                break
-
-            if psum > target:
-                hi = mid
-                mid = (lo + hi) / 2.0
-            else:
-                lo = mid
-                if hi == np.inf:
-                    mid *= 2
-                else:
-                    mid = (lo + hi) / 2.0
-        result[i] = mid
-        # TODO: This is very inefficient, but will do for now. FIXME
-        if rho[i] > 0.0:
-            mean_ith_distances = np.mean(ith_distances)
-            if result[i] < 1e-3 * mean_ith_distances:
-                result[i] = 1e-3 * mean_ith_distances
-        else:
-            if result[i] < 1e-3 * mean_distances:
-                result[i] = 1e-3 * mean_distances
-
-    return result, rho
 
 
 def plot_diagrams(
@@ -122,12 +9,10 @@ def plot_diagrams(
     xy_range=None,
     labels=None,
     colormap="default",
-    colormap1="default",
     size=20,
     ax_color=np.array([0.0, 0.0, 0.0]),
     diagonal=True,
     lifetime=False,
-    rel_life=False,
     legend=True,
     show=False,
     ax=None,
@@ -235,7 +120,7 @@ def plot_diagrams(
         ax.set_ylabel(ylabel)
 
     if len(torus_colors) > 0:
-        births1 = diagrams[1][:, 0]  # the time of birth for the 1-dim classes
+        # births1 = diagrams[1][:, 0]  # the time of birth for the 1-dim classes
         deaths1 = diagrams[1][:, 1]  # the time of death for the 1-dim classes
         deaths1[np.isinf(deaths1)] = 0
         # lives1 = deaths1-births1
@@ -258,9 +143,9 @@ def plot_diagrams(
             facecolor="none",
         )
 
-        births2 = diagrams[2][
-            :,
-        ]  # the time of birth for the 1-dim classes
+        # births2 = diagrams[2][
+        #    :,
+        # ]  # the time of birth for the 1-dim classes
         deaths2 = diagrams[2][:, 1]  # the time of death for the 1-dim classes
         deaths2[np.isinf(deaths2)] = 0
         # lives2 = deaths2-births2
@@ -288,34 +173,4 @@ def plot_diagrams(
 
     if show is True:
         plt.show()
-    return
-
-
-def get_coords(cocycle, threshold, num_sampled, dists, coeff):
-    zint = np.where(coeff - cocycle[:, 2] < cocycle[:, 2])
-    cocycle[zint, 2] = cocycle[zint, 2] - coeff
-    d = np.zeros((num_sampled, num_sampled))
-    d[np.tril_indices(num_sampled)] = np.NaN
-    d[cocycle[:, 1], cocycle[:, 0]] = cocycle[:, 2]
-    d[dists > threshold] = np.NaN
-    d[dists == 0] = np.NaN
-    edges = np.where(~np.isnan(d))
-    verts = np.array(np.unique(edges))
-    num_edges = np.shape(edges)[1]
-    num_verts = np.size(verts)
-    values = d[edges]
-    A = np.zeros((num_edges, num_verts), dtype=int)
-    v1 = np.zeros((num_edges, 2), dtype=int)
-    v2 = np.zeros((num_edges, 2), dtype=int)
-    for i in range(num_edges):
-        v1[i, :] = [i, np.where(verts == edges[0][i])[0]]
-        v2[i, :] = [i, np.where(verts == edges[1][i])[0]]
-
-    A[v1[:, 0], v1[:, 1]] = -1
-    A[v2[:, 0], v2[:, 1]] = 1
-
-    L = np.ones((num_edges,))
-    Aw = A * np.sqrt(L[:, np.newaxis])
-    Bw = values * np.sqrt(L)
-    f = lsmr(Aw, Bw)[0] % 1
-    return f, verts
+    return ax
