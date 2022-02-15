@@ -9,12 +9,6 @@ import pandas as pd
 from tqdm import tqdm
 
 
-def load_activity(layer="inception4a"):
-
-    activity = np.load(f"activations/ILSVRC2015/{layer}.pt")
-    return activity, activity.shape[1]
-
-
 def fix_umap_bug():
     """Fixing umap bug. https://github.com/lmcinnes/pynndescent/issues/163"""
 
@@ -76,8 +70,7 @@ def cluster_activity(activity, num_of_neurons):
 def find_circles(layer="inception4a"):
     activity = np.load(f"activations/ILSVRC2015/{layer}.npy")
     num_of_neurons = activity.shape[1]
-    activity = activity[:5000]  # REMOVE THIS LINE, ONLY FOR TEST
-    clustering = cluster_activity(activity=activity, num_of_neurons=num_of_neurons)
+    clustering = cluster_activity(activity=activity, num_of_neurons=2 * num_of_neurons)
     unique, counts = np.unique(clustering, return_counts=True)
     large_clusters = [
         unique[i] for i, count in enumerate(counts) if count > num_of_neurons
@@ -85,7 +78,6 @@ def find_circles(layer="inception4a"):
     print(
         f"{len(unique)} clusters fund. {len(large_clusters)} large clusters bigger than {2 * num_of_neurons}."
     )
-    large_clusters = large_clusters[:3]  # REMOVE THIS LINE, ONLY FOR TEST
     num_longest_bars, coeff = 10, 47
     cluster_info = {
         "cluster_id": [],
@@ -118,11 +110,6 @@ def find_circles(layer="inception4a"):
 
 def main():
     fix_umap_bug()
-    ### TEST ###
-    df = find_circles()
-    print(df)
-    ############
-    """
     layers = [
         "inception3a",
         "inception3b",
@@ -137,7 +124,6 @@ def main():
     for layer in layers:
         df = find_circles(layer=layer)
         df.to_pickle(f"data/clusters/{layer}.pkl")
-    """
 
 
 if __name__ == "__main__":
