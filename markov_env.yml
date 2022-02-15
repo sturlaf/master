@@ -8,9 +8,9 @@ dependencies:
   - pynndescent
   - pytorch
   - scipy
-  - gudhi
   - tqdm
-  - umap-learn
   - pip:
     - cython==0.29
     - ripser==0.6
+    - umap-learn
+    - gudhi
