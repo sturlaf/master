@@ -6,6 +6,7 @@ import torch
 from PIL import Image
 from torchvision import transforms
 from tqdm import tqdm
+import numpy as np
 
 
 def transform_image(input_image):
@@ -99,6 +100,7 @@ def main():
 
     extact_activations(layers)
     concat_batches(layers)
+    torch2numpy(layers)
 
 
 def extact_activations(layers):
@@ -118,6 +120,18 @@ def concat_batches(
             [torch.load(f"{folder}/{layer}/{file}") for file in batch_paths]
         )
         torch.save(activations, f"{save_location}/{layer}.pt")
+
+
+def torch2numpy(
+    layers,
+    save_location="activations/ILSVRC2015_new",
+    load_location="activations/ILSVRC2015",
+):
+    if not os.path.exists(save_location):
+        os.makedirs(save_location)
+    for layer in layers:
+        activations = torch.load(f"{load_location}/{layer}.pt").detach().numpy()
+        np.save(f"{save_location}/{layer}.npy", activations)
 
 
 if __name__ == "__main__":
