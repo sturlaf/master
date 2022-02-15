@@ -74,8 +74,8 @@ def cluster_activity(activity, num_of_neurons):
     return Tomato(density_type="logDTM", k=200).fit_predict(layout)
 
 
-def find_circles():
-    activity, num_of_neurons = load_activity(layer="inception4a")
+def find_circles(layer="inception4a"):
+    activity, num_of_neurons = load_activity(layer=layer)
     activity = activity[:1000]
     clustering = cluster_activity(activity=activity, num_of_neurons=num_of_neurons)
     unique, counts = np.unique(clustering, return_counts=True)
@@ -117,9 +117,20 @@ def find_circles():
 
 def main():
     fix_umap_bug()
-    df = find_circles()
-    print(df)
-    print(df["longest_bar"])
+    layers = [
+        "inception3a",
+        "inception3b",
+        "inception4a",
+        "inception4b",
+        "inception4c",
+        "inception4d",
+        "inception4e",
+        "inception5a",
+        "inception5b",
+    ]
+    for layer in layers:
+        df = find_circles(layer=layer)
+        df.to_pickle(f"data/clusters/{layer}.pkl")
 
 
 if __name__ == "__main__":
