@@ -67,13 +67,13 @@ def cluster_activity(activity, num_of_neurons):
     return Tomato(density_type="logDTM", k=200).fit_predict(layout)
 
 
-def find_circles(layer="inception4a"):
+def find_circles(layer):
     activity = np.load(f"activations/ILSVRC2015/{layer}.npy")
     num_of_neurons = activity.shape[1]
-    clustering = cluster_activity(activity=activity, num_of_neurons=2 * num_of_neurons)
+    clustering = cluster_activity(activity=activity, num_of_neurons=num_of_neurons)
     unique, counts = np.unique(clustering, return_counts=True)
     large_clusters = [
-        unique[i] for i, count in enumerate(counts) if count > num_of_neurons
+        unique[i] for i, count in enumerate(counts) if count > 2 * num_of_neurons
     ]
     print(
         f"{len(unique)} clusters fund. {len(large_clusters)} large clusters bigger than {2 * num_of_neurons}."
@@ -122,6 +122,7 @@ def main():
         "inception5b",
     ]
     for layer in layers:
+        print(f"{layer = }")
         df = find_circles(layer=layer)
         df.to_pickle(f"data/clusters/{layer}.pkl")
 
