@@ -1,16 +1,16 @@
 name: markov_env
 dependencies:
-  - python=3.9.10
-  - pip=21.3.1
-  - numba=0.53.1
-  - numpy=1.22.1
-  - pandas=1.4.0
-  - pynndescent=0.5.6
-  - pytorch=1.10.1
-  - scipy=1.7.3
-  - gudhi=3.5.0
-  - tqdm=4.62.3
-  - umap-learn=0.5.2
+  - python=3.9
+  - pip=21.3
+  - numba=0.53
+  - numpy=1.22
+  - pandas=1.4
+  - pynndescent=0.5
+  - pytorch=1.10
+  - scipy=1.7
+  - gudhi=3.5
+  - tqdm=4.62
+  - umap-learn=0.5
   - pip:
-    - cython==0.29.27
-    - ripser==0.6.1
+    - cython==0.29
+    - ripser==0.6
