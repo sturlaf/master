@@ -111,7 +111,7 @@ def find_circles(layer):
 def main():
     fix_umap_bug()
     layers = [
-        "inception3a",
+        # "inception3a",
         "inception3b",
         "inception4a",
         "inception4b",
