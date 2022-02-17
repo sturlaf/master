@@ -72,11 +72,12 @@ def find_circles(layer):
     num_of_neurons = activity.shape[1]
     clustering = cluster_activity(activity=activity, num_of_neurons=num_of_neurons)
     unique, counts = np.unique(clustering, return_counts=True)
+    large_cluster_size = num_of_neurons
     large_clusters = [
-        unique[i] for i, count in enumerate(counts) if count > 2 * num_of_neurons
+        unique[i] for i, count in enumerate(counts) if count > large_cluster_size
     ]
     print(
-        f"{len(unique)} clusters fund. {len(large_clusters)} large clusters bigger than {2 * num_of_neurons}."
+        f"{len(unique)} clusters fund. {len(large_clusters)} large clusters bigger than {large_cluster_size}."
     )
     num_longest_bars, coeff = 10, 47
     cluster_info = {
