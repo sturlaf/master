@@ -109,9 +109,8 @@ def make_3d_figure(diagrams, cocycles, layout, distance, coeff, row, layer, file
         autosize=False,
         width=1000,
         height=700,
-        margin=dict(l=0, r=0, b=0, t=0),  # , title=f"Cluster nr. {row['cluster_id']}"
+        margin=dict(l=0, r=0, b=0, t=0),
     )
-    fig.show()
     fig.write_html(f"html_files/clusters/{file_name}_{row['cluster_id']}_{layer}.html")
 
 
@@ -129,9 +128,9 @@ def main():
         "inception5b",
     ]
     make_save_locations()
-    layer = layers[3]
-    print(layer)
-    plot_persistance_clusters(layer=layer, num_clusters=1, file_name="Test_html")
+    for layer in layers:
+        print(layer)
+        plot_persistance_clusters(layer=layer, num_clusters=10, file_name="Test_html")
 
 
 def make_save_locations(save_locations=["html_files/clusters/", "pdf_files/"]):
