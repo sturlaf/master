@@ -5,7 +5,6 @@ from scipy.spatial.distance import pdist, squareform
 from umap import UMAP
 from fix_umap_bug import fix_umap_bug
 import pandas as pd
-from tqdm import tqdm
 from persim import plot_diagrams
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -13,12 +12,12 @@ from circular_cords import get_coords
 import plotly.graph_objects as go
 
 
-def plot_persistance_clusters(layer, num_clusters=5, file_name="persistance_clusters"):
+def plot_persistance_clusters(layer, num_clusters=5, filename="persistance_clusters"):
     df = pd.read_pickle(f"data/clusters/{layer}.pkl")
-    df = df.head(num_clusters)  # Top 5 longest bars
+    df = df.head(num_clusters)
     activity = np.load(f"activations/ILSVRC2015/{layer}.npy")
     num_of_neurons = activity.shape[1]
-    with PdfPages(f"pdf_files/{file_name}_{layer}.pdf") as pdf:
+    with PdfPages(f"pdf_files/{filename}_{layer}.pdf") as pdf:
         for index, row in df.iterrows():
             cluster = activity[row["cluster_members"]]
             layout = UMAP(
@@ -58,16 +57,16 @@ def plot_persistance_clusters(layer, num_clusters=5, file_name="persistance_clus
             make_3d_figure(
                 diagrams=persistence["dgms"][1],
                 cocycles=persistence["cocycles"][1],
-                layout=layout,
+                cluster=cluster,
                 distance=distance,
                 coeff=coeff,
                 row=row,
                 layer=layer,
-                file_name=file_name,
+                filename=filename,
             )
 
 
-def make_3d_figure(diagrams, cocycles, layout, distance, coeff, row, layer, file_name):
+def make_3d_figure(diagrams, cocycles, cluster, distance, coeff, row, layer, filename):
     births1, deaths1 = diagrams[:, 0], diagrams[:, 1]
     lives1 = deaths1 - births1  # the lifetime for the 1-dim classes
     iMax = np.argsort(lives1)
@@ -85,8 +84,8 @@ def make_3d_figure(diagrams, cocycles, layout, distance, coeff, row, layer, file
         verbose=True,
         n_neighbors=20,
         min_dist=0.01,
-        metric="euclidean",
-    ).fit_transform(layout)
+        metric="cosine",
+    ).fit_transform(cluster)
 
     fig = go.Figure(
         data=[
@@ -111,7 +110,7 @@ def make_3d_figure(diagrams, cocycles, layout, distance, coeff, row, layer, file
         height=700,
         margin=dict(l=0, r=0, b=0, t=0),
     )
-    fig.write_html(f"html_files/clusters/{file_name}_{row['cluster_id']}_{layer}.html")
+    fig.write_html(f"html_files/clusters/{layer}/{filename}_{row['cluster_id']}.html")
 
 
 def main():
@@ -127,16 +126,20 @@ def main():
         "inception5a",
         "inception5b",
     ]
-    make_save_locations()
+    make_save_locations(layers=layers)
     for layer in layers:
         print(layer)
-        plot_persistance_clusters(layer=layer, num_clusters=10, file_name="Test_html")
+        plot_persistance_clusters(layer=layer, num_clusters=10)
 
 
-def make_save_locations(save_locations=["html_files/clusters/", "pdf_files/"]):
+def make_save_locations(layers, save_locations=["html_files/clusters/", "pdf_files/"]):
     for save_location in save_locations:
         if not os.path.exists(save_location):
             os.makedirs(save_location)
+    for layer in layers:
+        loc = f"{save_locations[0]}{layer}/"
+        if not os.path.exists(loc):
+            os.makedirs(loc)
 
 
 if __name__ == "__main__":
