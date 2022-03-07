@@ -132,3 +132,4 @@ dmypy.json
 /activations/
 .DS_Store
 /html_files/
+/pdf_files/
