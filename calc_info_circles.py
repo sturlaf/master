@@ -73,7 +73,7 @@ def information_rate(cluster, theta, neurons):
     for b in range(len(bins) - 1):
         for n in range(neurons):
             rates = []
-            for x in range(len(cluster)):
+            for x in range(len(theta)):
                 if bins[b] < theta[x] <= bins[b + 1]:
                     rates.append(cluster[x, n])
             if rates:
