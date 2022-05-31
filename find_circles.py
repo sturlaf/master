@@ -12,14 +12,17 @@ from cosine_hack import umap_hack
 def calculate_persistence(
     cluster, num_of_neurons, maxdim=1, coeff=47, num_longest_bars=10
 ):
-    if num_of_neurons < 400:
-        layout = umap_hack(
-            activity=cluster,
-            n_components=num_of_neurons,
-            verbose=True,
-            n_neighbors=20,
-            min_dist=0.01,
-        )
+    if (num_of_neurons < 400) and (cluster.shape[0] > 4000):
+        try:
+            layout = umap_hack(
+                activity=cluster,
+                n_components=num_of_neurons,
+                verbose=True,
+                n_neighbors=20,
+                min_dist=0.01,
+            )
+        except KeyError:
+            return np.array([-1])
     else:
         layout = UMAP(
             n_components=num_of_neurons,
