@@ -14,11 +14,12 @@ def calculate_persistence(
 ):
     if num_of_neurons < 400:
         layout = umap_hack(
+            activity=cluster,
             n_components=num_of_neurons,
             verbose=True,
             n_neighbors=20,
             min_dist=0.01,
-        ).fit_transform(cluster)
+        )
     else:
         layout = UMAP(
             n_components=num_of_neurons,
@@ -50,11 +51,12 @@ def calculate_persistence(
 def cluster_activity(activity, num_of_neurons):
     if num_of_neurons < 400:
         layout = umap_hack(
+            activity=activity,
             n_components=num_of_neurons,
             verbose=True,
             n_neighbors=20,
             min_dist=0.01,
-        ).fit_transform(activity)
+        )
     else:
         layout = UMAP(
             n_components=num_of_neurons,
