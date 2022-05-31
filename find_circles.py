@@ -18,7 +18,6 @@ def calculate_persistence(
             verbose=True,
             n_neighbors=20,
             min_dist=0.01,
-            metric="cosine",
         ).fit_transform(cluster)
     else:
         layout = UMAP(
@@ -55,7 +54,6 @@ def cluster_activity(activity, num_of_neurons):
             verbose=True,
             n_neighbors=20,
             min_dist=0.01,
-            metric="cosine",
         ).fit_transform(activity)
     else:
         layout = UMAP(
