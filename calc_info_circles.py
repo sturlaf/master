@@ -8,6 +8,7 @@ import pandas as pd
 from tqdm import tqdm
 from circular_cords import get_coords
 import os
+from cosine_hack import umap_hack
 
 
 def calc_info_circles(layer, method="perea"):
@@ -20,13 +21,27 @@ def calc_info_circles(layer, method="perea"):
     pbar = tqdm(total=len(cluster_info))
     for index, row in cluster_info.iterrows():
         cluster = activity[row["cluster_members"]]
-        layout = UMAP(
-            n_components=num_of_neurons,
-            verbose=True,
-            n_neighbors=20,
-            min_dist=0.01,
-            metric="cosine",
-        ).fit_transform(cluster)
+        if (num_of_neurons < 400) and (cluster.shape[0] > 4000):
+            try:
+                layout = umap_hack(
+                    activity=cluster,
+                    n_components=num_of_neurons,
+                    verbose=True,
+                    n_neighbors=20,
+                    min_dist=0.01,
+                )
+            except KeyError:
+                circle_params.append([])
+                info_per_nodes.append([])
+                continue
+        else:
+            layout = UMAP(
+                n_components=num_of_neurons,
+                verbose=True,
+                n_neighbors=20,
+                min_dist=0.01,
+                metric="cosine",
+            ).fit_transform(cluster)
         distance = squareform(pdist(layout, "euclidean"))
         persistence = ripser(
             X=distance,
@@ -91,15 +106,15 @@ def information_rate(cluster, theta, neurons):
 def main():
     fix_umap_bug()
     layers = [
-        # "inception3a",
-        "inception3b",
-        "inception4a",
-        "inception4b",
-        "inception4c",
-        "inception4d",
-        "inception4e",
-        "inception5a",
-        "inception5b",
+        "inception3a",
+        # "inception3b",
+        # "inception4a",
+        # "inception4b",
+        # "inception4c",
+        # "inception4d",
+        # "inception4e",
+        # "inception5a",
+        # "inception5b",
     ]
     save_location = "data/clusters/perera/"
     if not os.path.exists(save_location):
