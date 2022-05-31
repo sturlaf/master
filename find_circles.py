@@ -6,18 +6,28 @@ from umap import UMAP
 from fix_umap_bug import fix_umap_bug
 import pandas as pd
 from tqdm import tqdm
+from cosine_hack import umap_hack
 
 
 def calculate_persistence(
     cluster, num_of_neurons, maxdim=1, coeff=47, num_longest_bars=10
 ):
-    layout = UMAP(
-        n_components=num_of_neurons,
-        verbose=True,
-        n_neighbors=20,
-        min_dist=0.01,
-        metric="cosine",
-    ).fit_transform(cluster)
+    if num_of_neurons < 400:
+        layout = umap_hack(
+            n_components=num_of_neurons,
+            verbose=True,
+            n_neighbors=20,
+            min_dist=0.01,
+            metric="cosine",
+        ).fit_transform(cluster)
+    else:
+        layout = UMAP(
+            n_components=num_of_neurons,
+            verbose=True,
+            n_neighbors=20,
+            min_dist=0.01,
+            metric="cosine",
+        ).fit_transform(cluster)
     distance = squareform(pdist(layout, "euclidean"))
     thresh = np.max(distance[~np.isinf(distance)])
     diagrams = ripser(
@@ -39,15 +49,23 @@ def calculate_persistence(
 
 
 def cluster_activity(activity, num_of_neurons):
-
-    layout = UMAP(
-        n_components=num_of_neurons,
-        verbose=True,
-        n_neighbors=20,
-        min_dist=0.01,
-        metric="cosine",
-    ).fit_transform(activity)
-    # logDTM, DTM, ‘KDE’ or ‘logKDE’
+    if num_of_neurons < 400:
+        layout = umap_hack(
+            n_components=num_of_neurons,
+            verbose=True,
+            n_neighbors=20,
+            min_dist=0.01,
+            metric="cosine",
+        ).fit_transform(activity)
+    else:
+        layout = UMAP(
+            n_components=num_of_neurons,
+            verbose=True,
+            n_neighbors=20,
+            min_dist=0.01,
+            metric="cosine",
+        ).fit_transform(activity)
+        # logDTM, DTM, ‘KDE’ or ‘logKDE’
     return Tomato(density_type="logDTM", k=200).fit_predict(layout)
 
 
@@ -96,15 +114,15 @@ def find_circles(layer):
 def main():
     fix_umap_bug()
     layers = [
-        # "inception3a",
-        "inception3b",
-        "inception4a",
-        "inception4b",
-        "inception4c",
-        "inception4d",
-        "inception4e",
-        "inception5a",
-        "inception5b",
+        "inception3a",
+        # "inception3b",
+        # "inception4a",
+        # "inception4b",
+        # "inception4c",
+        # "inception4d",
+        # "inception4e",
+        # "inception5a",
+        # "inception5b",
     ]
     for layer in layers:
         print(f"{layer = }")

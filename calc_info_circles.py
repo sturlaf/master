@@ -10,7 +10,7 @@ from circular_cords import get_coords
 import os
 
 
-def calc_info_circles(layer):
+def calc_info_circles(layer, method="perea"):
     activity = np.load(f"activations/ILSVRC2015/{layer}.npy")
     num_of_neurons = activity.shape[1]
     cluster_info = pd.read_pickle(f"data/clusters/{layer}.pkl")
@@ -49,7 +49,7 @@ def calc_info_circles(layer):
             num_sampled=row["cluster_size"],
             dists=distance,
             coeff=coeff,
-            bool_smooth_circle="perea",  # "graph", "old"
+            bool_smooth_circle=method,  # "graph", "old", "perea"
         )
         circle_params.append(f)
         information_per_node = information_rate(

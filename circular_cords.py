@@ -3,6 +3,10 @@ import numpy as np
 from scipy.sparse import spdiags
 from scipy.spatial.distance import cdist
 from scipy.sparse.linalg import lsmr
+from scipy.sparse.csgraph import floyd_warshall
+from joblib import Parallel, delayed
+from itertools import chain
+from collections import Counter
 
 # from Utils.plotting import scatter_plot
 def comp_circ_coords(
@@ -169,6 +173,88 @@ def get_weights_graph(A, values, edges, verts, dists, num_edges, num_verts):
         L[edgewhere[j, i]] = L[edgewhere[j, i]] + distpo[j, i]
         L[e] = L[e] + distpo[row[e], col[e]]
     return L
+
+
+"""
+
+def get_weights_graph(A, values, edges, verts, dists, num_edges, num_verts):
+    f0 = lsmr(-1 * A, values)[0]
+    B = values + np.dot(A, f0)
+    row = np.zeros((num_edges,), dtype=int)
+    col = np.zeros((num_edges,), dtype=int)
+    G = np.zeros((num_verts, num_verts))
+    edgewhere = np.zeros((num_verts, num_verts), dtype=int)
+    # nextv = np.zeros((num_verts, num_verts), dtype=int)
+    # nextv[:] = -1
+    L = np.zeros((num_edges,))
+    # distpo = np.zeros((num_verts, num_verts))
+    for e in range(num_edges):
+        if B[e] >= 0:
+            e0 = np.where(verts == edges[0][e])[0]
+            e1 = np.where(verts == edges[1][e])[0]
+        else:
+            e0 = np.where(verts == edges[1][e])[0]
+            e1 = np.where(verts == edges[0][e])[0]
+        row[e] = e0
+        col[e] = e1
+        G[e0, e1] = dists[verts[e0], verts[e1]]
+        L[e] = 1 / np.power(dists[verts[e0], verts[e1]], 2)
+        # distpo[e0, e1] = 1 / np.power(dists[verts[e0], verts[e1]], 2)
+        edgewhere[e0, e1] = e
+        # nextv[e0, e1] = e1
+        # L[e] = distpo[e0, e1]
+    
+    G[G == 0] = np.inf
+    it = 0
+    for k in range(num_verts):
+        for i in range(num_verts):
+            for j in range(num_verts):
+                if G[i, j] > (G[i, k] + G[k, j]):
+                    it = it + 1
+                    G[i, j] = G[i, k] + G[k, j]
+                    nextv[i, j] = nextv[i, k]
+
+    for e in range(num_edges):
+        it = 0
+        i = nextv[col[e], row[e]]
+        j = col[e]
+        while i != row[e] and i != -1 and it <= 10000:
+            it = it + 1
+            L[edgewhere[j, i]] = L[edgewhere[j, i]] + distpo[j, i]
+            j = i
+            i = nextv[i, row[e]]
+        L[edgewhere[j, i]] = L[edgewhere[j, i]] + distpo[j, i]
+        # L[e] = L[e] + distpo[row[e], col[e]]
+    
+    G, nextv = floyd_warshall(csgraph=G, directed=False, return_predecessors=True)
+    paths = Parallel(n_jobs=3)(
+        delayed(traverse_paths)(
+            start=col[e], end=row[e], edgewhere=edgewhere, nextv=nextv
+        )
+        for e in range(num_edges)
+    )
+    counts = Counter(list(chain(*paths))).most_common()
+    for (e, count) in counts:
+        L[e] = L[e] * count
+
+    return L
+
+
+def traverse_paths(start, end, edgewhere, nextv):
+    it = 0
+    path = []
+    i = start
+    j = nextv[i, end]
+    while j != end and j != -9999 and it <= 10000:
+        it = it + 1
+        path.append(edgewhere[i, j])
+        i = j
+        j = nextv[i, end]
+    path.append(edgewhere[i, j])
+
+    return path
+
+"""
 
 
 def get_weights_perea(edges, dists, threshold, num_edges):
