@@ -107,21 +107,21 @@ def main():
     fix_umap_bug()
     layers = [
         "inception3a",
-        # "inception3b",
-        # "inception4a",
-        # "inception4b",
-        # "inception4c",
-        # "inception4d",
-        # "inception4e",
-        # "inception5a",
-        # "inception5b",
+        "inception3b",
+        "inception4a",
+        "inception4b",
+        "inception4c",
+        "inception4d",
+        "inception4e",
+        "inception5a",
+        "inception5b",
     ]
-    save_location = "data/clusters/perera/"
+    save_location = "data/clusters/graph/"
     if not os.path.exists(save_location):
         os.makedirs(save_location)
     for layer in layers:
         print(f"{layer = }")
-        df = calc_info_circles(layer=layer)
+        df = calc_info_circles(layer=layer, method="graph")
         df.to_pickle(f"{save_location}{layer}.pkl")
 
 
